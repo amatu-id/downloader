@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <script src="/amatu.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Downloader · YouTube ke MP4/MP3</title>
-<meta name="description" content="Tempel link YouTube, otomatis dikonversi dan disimpan sebagai MP4 atau MP3 dengan pilihan kualitas dan resolusi.">
+<title>Downloader · YouTube, Instagram, TikTok</title>
+<meta name="description" content="Tempel link YouTube, Instagram (postingan, reels, story), atau TikTok — otomatis dikonversi dan disimpan sebagai MP4, MP3, atau foto.">
 <meta name="theme-color" content="#f4f4f2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -105,6 +105,22 @@ svg{display:block}
 .tag{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--hover);color:var(--tx2);margin-right:6px;vertical-align:1px}
 .job .act{display:flex;gap:4px;align-items:center;flex:none}
 @media (max-width:640px){.job{flex-wrap:wrap}.job .mid{flex-basis:calc(100% - 84px)}.job .act{width:100%;justify-content:flex-end}}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:14px}
+.it{position:relative;aspect-ratio:4/5;border-radius:10px;overflow:hidden;background:var(--hover) center/cover no-repeat;border:2px solid transparent;transition:border-color .12s,opacity .12s}
+.it.on{border-color:var(--ac)}
+.it.off{opacity:.35;pointer-events:none}
+.it .ck{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.3);display:grid;place-items:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.it.on .ck{background:var(--ac);border-color:var(--ac)}
+.it .ck svg{opacity:0}.it.on .ck svg{opacity:1}
+.it .ty{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:5px;display:flex;align-items:center;gap:4px}
+.it .nn{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;padding:0 6px;border-radius:5px}
+.selrow{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:12.5px;color:var(--tx3)}
+.selrow button{color:var(--ac);font-weight:600;font-size:12.5px}
+.seg.sm button{height:28px;padding:0 9px;font-size:12.5px;white-space:nowrap}
+.th.port{aspect-ratio:4/5;width:min(100%,240px);margin:0 auto}
+.site{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;margin-right:6px;vertical-align:1px;color:#fff}
+.site.ig{background:linear-gradient(45deg,#f59e0b,#e11d48 55%,#9333ea)}
+.site.tt{background:#111;box-shadow:inset 0 0 0 1px #444}
 .empty{padding:26px;text-align:center;color:var(--tx3);font-size:13px}
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .steps div{padding:14px;border-radius:13px;border:1px dashed var(--line2);font-size:12.5px;color:var(--tx2)}
@@ -119,6 +135,7 @@ svg{display:block}
   .brand span{display:none}
   .vid,.skel{grid-template-columns:1fr;gap:12px}
   .qs{grid-template-columns:repeat(2,1fr)}
+  .items{grid-template-columns:repeat(3,1fr)}
   .steps{grid-template-columns:1fr}
   .job .th{width:72px}
   .chip .lb{display:none}
@@ -129,7 +146,7 @@ svg{display:block}
 <div class="page">
   <header class="top">
     <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg></div>
-    <div class="brand"><b>Downloader</b><span>Link YouTube → MP4 atau MP3</span></div>
+    <div class="brand"><b>Downloader</b><span>YouTube · Instagram · TikTok → MP4, MP3, foto</span></div>
     <div class="sp"></div>
     <span class="chip wait" id="srv" title="Server konversi di MacBook"><i></i><span class="lb">Menghubungkan…</span></span>
     <button class="ib" id="theme" title="Tema terang/gelap" aria-label="Tema"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
@@ -138,13 +155,13 @@ svg{display:block}
   <section class="card paste">
     <div class="inrow">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
-      <input id="url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Tempel link YouTube di sini…" aria-label="Link YouTube">
+      <input id="url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Tempel link YouTube, Instagram, atau TikTok…" aria-label="Link video atau postingan">
       <button class="ib" id="clr" title="Hapus" aria-label="Hapus" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <button class="btn pri" id="pasteBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>Tempel</button>
     </div>
     <div class="row">
       <div class="seg" role="tablist">
-        <button id="kMp4" data-k="mp4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></svg>MP4 Video</button>
+        <button id="kMp4" data-k="mp4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></svg><span id="kMp4L">MP4 Video</span></button>
         <button id="kMp3" data-k="mp3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>MP3 Audio</button>
       </div>
       <div class="sp"></div>
@@ -168,15 +185,15 @@ svg{display:block}
 
   <div id="intro">
     <div class="steps">
-      <div><b><i>1</i>Salin link</b>Dari aplikasi atau situs YouTube: Bagikan → Salin link. Video biasa, Shorts, dan musik bisa.</div>
-      <div><b><i>2</i>Tempel di sini</b>Detail video langsung muncul. Pilih MP4 (resolusi) atau MP3 (kualitas audio).</div>
+      <div><b><i>1</i>Salin link</b>YouTube (video, Shorts, musik), Instagram (postingan, carousel, reels, story, highlight), atau TikTok (video, foto, story): Bagikan → Salin link.</div>
+      <div><b><i>2</i>Tempel di sini</b>Detail langsung muncul. YouTube: pilih resolusi MP4 atau kualitas MP3. Instagram/TikTok: pilih foto/video yang mau diambil.</div>
       <div><b><i>3</i>Tersimpan otomatis</b>Setelah dikonversi, file langsung tersimpan ke folder Unduhan perangkat.</div>
     </div>
   </div>
 
   <div class="sect"><h3>Unduhan</h3><div class="sp"></div><button class="btn sm" id="clean" hidden>Bersihkan riwayat</button></div>
   <div class="jobs" id="jobs"><div class="card empty">Belum ada unduhan.</div></div>
-  <p class="hint" style="margin-top:14px">Konversi berjalan di server MacBook pemilik portal, jadi MacBook harus menyala dan online. File hasil disimpan di server paling lama 1 jam. Gunakan hanya untuk video milik sendiri atau yang boleh diunduh.</p>
+  <p class="hint" style="margin-top:14px">Konversi berjalan di server MacBook pemilik portal, jadi MacBook harus menyala dan online. File hasil disimpan di server paling lama 1 jam. Instagram dibaca memakai akun Instagram yang login di Chrome MacBook, jadi story/akun privat hanya bisa kalau akun itu bisa melihatnya. Gunakan hanya untuk konten milik sendiri atau yang boleh diunduh.</p>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -218,6 +235,33 @@ function ytId(s) {
   s = String(s || '').trim();
   const m = /(?:youtube(?:-nocookie)?\.com\/(?:.*[?&]v=|shorts\/|live\/|embed\/|v\/)|youtu\.be\/)([\w-]{11})/i.exec(s);
   return m ? m[1] : null;
+}
+// Any supported link in pasted text → { site, key, url }. Instagram/TikTok links are checked fully by the relay.
+const SOC = /https?:\/\/(?:(?:www|m)\.)?(?:instagram\.com|instagr\.am|(?:vm\.|vt\.)?tiktok\.com)\/[^\s"'<>]+/i;
+function link(s) {
+  const y = ytId(s);
+  if (y) return { site: 'youtube', key: y, url: 'https://www.youtube.com/watch?v=' + y };
+  const m = SOC.exec(String(s || ''));
+  if (!m) return null;
+  let u = m[0].replace(/[),.!?]+$/, '');
+  const site = /tiktok/i.test(u) ? 'tiktok' : 'instagram';
+  try { const x = new URL(u); u = x.origin + x.pathname + (x.searchParams.get('story_media_id') ? '?story_media_id=' + x.searchParams.get('story_media_id') : ''); } catch { }
+  return { site, key: u, url: u };
+}
+const SITE = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok' };
+const social = d => !!d && !!d.site && d.site !== 'youtube';
+const rel = p => !p ? '' : /^https?:/.test(p) ? p : (R.url || '') + p;
+const siteTag = s => s === 'instagram' ? '<span class="site ig">IG</span>' : s === 'tiktok' ? '<span class="site tt">TikTok</span>' : '';
+// Small JPEG data URL of a relay thumbnail for the history (the relay's own thumb links expire).
+function tinyThumb(src) {
+  return new Promise(res => {
+    if (!src) return res('');
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    const t = setTimeout(() => res(''), 4000);
+    im.onload = () => { clearTimeout(t); try { const w = 160, h = Math.round(w * im.naturalHeight / im.naturalWidth) || 90, c = document.createElement('canvas'); c.width = w; c.height = Math.min(h, 200); c.getContext('2d').drawImage(im, 0, 0, w, h); res(c.toDataURL('image/jpeg', .6)); } catch { res(''); } };
+    im.onerror = () => { clearTimeout(t); res(''); };
+    im.src = src;
+  });
 }
 
 // ---------- relay (the MacBook, behind a Cloudflare tunnel) ----------
@@ -277,18 +321,19 @@ let cur = null, infoSeq = 0, lastId = null;
 function showErr(t) { const e = $('err'); if (!t) { e.hidden = true; return; } e.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>' + esc(t) + '</span>'; e.hidden = false; }
 
 async function load(raw, fromPaste) {
-  const id = ytId(raw);
+  const l = link(raw), id = l && l.key;
   $('clr').hidden = !$('url').value;
-  if (!id) { if (raw.trim()) showErr('Itu bukan link video YouTube. Contoh: https://youtu.be/xxxxxxxxxxx'); return; }
+  if (!id) { if (raw.trim()) showErr('Itu bukan link YouTube, Instagram, atau TikTok. Contoh: https://youtu.be/xxxxxxxxxxx atau https://www.instagram.com/reel/xxxx/'); return; }
   showErr('');
   if (id === lastId && cur) { if (fromPaste && prefs.auto) start(); return; }
   lastId = id;
   const seq = ++infoSeq;
   $('vid').hidden = true; $('skel').hidden = false; $('intro').hidden = true;
   try {
-    const d = await api('/api/info?url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id));
+    const d = await api('/api/info?url=' + encodeURIComponent(l.url));
     if (seq !== infoSeq) return;
-    cur = d; render();
+    if (l.site !== 'youtube' && !social(d)) throw new Error('Server konversi di MacBook belum mendukung Instagram/TikTok. Perbarui relay-nya.');
+    cur = d; pickSet = null; render();
     if (fromPaste && prefs.auto) start();
   } catch (e) {
     if (seq !== infoSeq) return;
@@ -317,12 +362,13 @@ addEventListener('drop', e => { const t = e.dataTransfer.getData('text/uri-list'
 addEventListener('paste', e => {
   if (e.target === url) return;
   const t = e.clipboardData && e.clipboardData.getData('text');
-  if (t && ytId(t)) { url.value = t.trim(); load(url.value, true); }
+  if (t && link(t)) { url.value = t.trim(); load(url.value, true); }
 });
 
 // ---------- format + quality ----------
 const ABR = [[320, 'Terbaik'], [256, 'Tinggi'], [192, 'Bagus'], [128, 'Hemat']];
 function setKind(k) { prefs.kind = k; savePrefs(); $('kMp4').classList.toggle('on', k === 'mp4'); $('kMp3').classList.toggle('on', k === 'mp3'); if (cur) render(); }
+const kindLabel = () => { $('kMp4L').textContent = social(cur) ? 'Video & Foto' : 'MP4 Video'; };
 $('kMp4').onclick = () => setKind('mp4');
 $('kMp3').onclick = () => setKind('mp3');
 $('auto').checked = prefs.auto;
@@ -330,9 +376,12 @@ $('auto').onchange = e => { prefs.auto = e.target.checked; savePrefs(); toast(pr
 
 // Row for the preferred quality: the highest one not above it (or the lowest available).
 const pickRow = v => v.find(r => r.p <= prefs.q) || v[v.length - 1];
-let sel = null;
+let sel = null, pickSet = null;
 function render() {
+  kindLabel();
+  if (social(cur)) return renderSocial();
   const d = cur;
+  $('vTh').classList.remove('port'); $('qs').style.display = '';
   $('vTh').style.backgroundImage = d.thumb ? 'url("' + d.thumb + '")' : '';
   $('vDur').textContent = d.live ? 'LIVE' : fmtDur(d.duration);
   $('vTitle').textContent = d.title;
@@ -364,19 +413,68 @@ function render() {
   if (d.live) opts.innerHTML = '<div class="msg warn">Siaran langsung belum bisa diunduh. Tunggu sampai siarannya selesai.</div>';
   $('vid').hidden = false; $('intro').hidden = true;
 }
+// Instagram / TikTok: every photo/video of the post (or every story) as a tile to pick.
+const CK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>';
+const TY = { video: 'Video', image: 'Foto', audio: 'Audio' };
+function renderSocial() {
+  const d = cur, mp3 = prefs.kind === 'mp3', its = d.items;
+  if (!pickSet) pickSet = new Set(its.map(x => x.n));
+  const usable = x => !mp3 || x.type !== 'image';
+  const chosen = its.filter(x => pickSet.has(x.n) && usable(x));
+  const th = $('vTh');
+  th.classList.add('port');
+  th.style.backgroundImage = d.thumb ? 'url("' + rel(d.thumb) + '")' : '';
+  $('vDur').textContent = d.duration ? fmtDur(d.duration) : d.label;
+  $('vTitle').textContent = d.title;
+  $('vSub').innerHTML = siteTag(d.site) + esc([d.label, d.channel + (d.fullname && '@' + d.fullname !== d.channel ? ' (' + d.fullname + ')' : ''), fmtDate(d.date)].filter(Boolean).join(' · '));
+  const box = $('qs'), opts = $('opts');
+  const vids = its.filter(x => x.type === 'video').length, imgs = its.filter(x => x.type === 'image').length;
+  let html = '';
+  if (its.length > 1) {
+    html += `<div class="selrow" style="grid-column:1/-1"><span>${chosen.length} dari ${its.filter(usable).length} dipilih</span><div class="sp"></div><button data-all="1">Pilih semua</button><button data-all="0">Kosongkan</button></div>`;
+  }
+  html += '<div class="items" style="grid-column:1/-1">' + its.map(x => `<button class="it${pickSet.has(x.n) && usable(x) ? ' on' : ''}${usable(x) ? '' : ' off'}" data-n="${x.n}" style="background-image:url('${esc(rel(x.thumb))}')" title="${TY[x.type]} ${x.n}${x.w ? ' · ' + x.w + '×' + x.h : ''}">
+      ${its.length > 1 ? `<span class="nn">${x.n}</span>` : ''}<span class="ck">${CK}</span><span class="ty">${TY[x.type]}${x.dur ? ' ' + fmtDur(x.dur) : ''}</span></button>`).join('') + '</div>';
+  box.innerHTML = html;
+  box.style.display = its.length > 1 || !d.thumb ? '' : 'none';
+  let o = '';
+  if (mp3) {
+    o += `<div class="row"><span class="hint">Kualitas MP3</span><div class="seg sm">${ABR.map(([b]) => `<button data-b="${b}" class="${b === prefs.abr ? 'on' : ''}">${b} kbps</button>`).join('')}</div></div>`;
+    if (!vids && !its.some(x => x.type === 'audio')) o += '<div class="msg warn">Postingan ini hanya berisi foto — tidak ada audio untuk MP3.</div>';
+    else if (imgs) o += '<div class="hint">Foto dilewati; hanya video/audio yang diubah ke MP3.</div>';
+  } else {
+    o += `<label class="tog"><input type="checkbox" id="compat"${prefs.compat ? ' checked' : ''}><span class="sw"></span>Ubah ke H.264 / JPG agar bisa dibuka di semua perangkat</label>`;
+    if (vids && d.site === 'instagram') o += `<div class="hint">${prefs.compat ? 'Video Instagram kualitas penuh memakai VP9; diubah ke H.264 di MacBook (beberapa detik).' : 'Video disimpan apa adanya (VP9) — mungkin tidak bisa diputar di iPhone/QuickTime.'}</div>`;
+  }
+  opts.innerHTML = o;
+  const c = $('compat'); if (c) c.onchange = e => { prefs.compat = e.target.checked; savePrefs(); render(); };
+  opts.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { prefs.abr = +b.dataset.b; savePrefs(); render(); });
+  box.querySelectorAll('.it').forEach(b => b.onclick = () => { const n = +b.dataset.n; pickSet.has(n) ? pickSet.delete(n) : pickSet.add(n); render(); });
+  box.querySelectorAll('[data-all]').forEach(b => b.onclick = () => { pickSet = new Set(b.dataset.all === '1' ? its.map(x => x.n) : []); render(); });
+  const n = chosen.length, one = n === 1 ? chosen[0] : null;
+  $('go').innerHTML = dlIcon + (mp3 ? `Unduh MP3 ${prefs.abr} kbps${n > 1 ? ' · ' + n + ' file' : ''}` : one ? `Unduh ${one.type === 'video' ? 'video MP4' : one.type === 'audio' ? 'audio' : 'foto'}` : `Unduh ${n} file`);
+  $('go').disabled = !n;
+  $('vid').hidden = false; $('intro').hidden = true;
+}
 const dlIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>';
 
 // ---------- jobs ----------
 $('go').onclick = () => start();
 async function start() {
   if (!cur || cur.live) return;
-  const d = cur, b = prefs.kind === 'mp4' ? { kind: 'mp4', q: sel.p, compat: prefs.compat } : { kind: 'mp3', abr: sel.abr };
+  const d = cur, soc = social(d);
+  let b;
+  if (soc) {
+    const mp3 = prefs.kind === 'mp3', items = d.items.filter(x => pickSet && pickSet.has(x.n) && (!mp3 || x.type !== 'image')).map(x => x.n);
+    if (!items.length) return showErr(mp3 ? 'Pilih minimal satu video untuk MP3.' : 'Pilih minimal satu foto/video.');
+    b = { url: d.src, kind: mp3 ? 'mp3' : 'media', items, compat: prefs.compat, abr: prefs.abr };
+  } else b = { url: 'https://www.youtube.com/watch?v=' + d.id, ...(prefs.kind === 'mp4' ? { kind: 'mp4', q: sel.p, compat: prefs.compat } : { kind: 'mp3', abr: sel.abr }) };
   $('go').disabled = true;
   try {
-    const j = await api('/api/job', { method: 'POST', body: JSON.stringify({ url: 'https://www.youtube.com/watch?v=' + d.id, ...b }) });
-    hist.unshift({ id: j.id, vid: d.id, title: d.title, thumb: d.thumb, kind: j.kind, q: j.q, name: j.name, t: Date.now(), state: j.state, relay: R.url, auto: 1 });
+    const [j, thumb] = await Promise.all([api('/api/job', { method: 'POST', body: JSON.stringify(b) }), soc ? tinyThumb(rel(d.thumb)) : d.thumb]);
+    hist.unshift({ id: j.id, site: d.site || 'youtube', vid: soc ? undefined : d.id, src: soc ? d.src : undefined, title: d.title, thumb, kind: j.kind, q: j.q, name: j.name, t: Date.now(), state: j.state, relay: R.url, auto: 1 });
     saveHist(); live.set(j.id, j); drawJobs(); poll();
-    toast('Diproses: ' + (j.kind === 'mp3' ? 'MP3 ' : 'MP4 ') + j.q);
+    toast('Diproses: ' + (soc ? SITE[d.site] + ' ' + (j.kind === 'mp3' ? 'MP3' : j.q) : (j.kind === 'mp3' ? 'MP3 ' : 'MP4 ') + j.q));
     url.value = ''; $('clr').hidden = true; lastId = null;
     $('jobs').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch (e) { showErr(e.message); }
@@ -394,8 +492,8 @@ async function poll() {
       const j = await api('/api/job/' + h.id);
       live.set(h.id, j);
       if (j.state !== h.state) {
-        h.state = j.state; h.size = j.size; h.err = j.err; h.name = j.name;
-        if (j.state === 'done') { h.done = Date.now(); if (h.auto) { h.auto = 0; save(h); } }
+        h.state = j.state; h.size = j.size; h.err = j.err; h.name = j.name; h.parts = j.parts;
+        if (j.state === 'done') { h.done = Date.now(); if (h.auto) { h.auto = 0; saveAll(h); } }
         saveHist();
       }
     } catch (e) {
@@ -407,14 +505,21 @@ async function poll() {
 }
 
 // The relay answers the file with Content-Disposition: attachment, so the browser saves it without leaving the page.
-function save(h) {
+// part = index of one file of a multi-file job (carousel / stories); none = the single file or the ZIP.
+function save(h, part) {
   const base = h.relay || R.url;
   if (!base) return toast('Server offline');
+  const p = part != null && h.parts ? h.parts[part] : null, name = p ? p.name : h.name || 'file';
   const a = document.createElement('a');
-  a.href = base + '/api/file/' + h.id + '/' + encodeURIComponent(h.name || 'file');
-  a.rel = 'noopener'; a.download = h.name || '';
+  a.href = base + '/api/file/' + h.id + '/' + encodeURIComponent(name) + (p ? '?part=' + part : '');
+  a.rel = 'noopener'; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
-  toast('Menyimpan ' + (h.name || 'file'));
+  toast('Menyimpan ' + name);
+}
+// Several photos/videos: each file on its own (browsers may ask once to allow multiple downloads); more than 10 → the ZIP.
+function saveAll(h) {
+  if (!h.parts || h.parts.length < 2 || h.parts.length > 10) return save(h);
+  h.parts.forEach((_, k) => setTimeout(() => save(h, k), k * 700));
 }
 const EXPIRE = 55 * 60e3;
 function drawJobs() {
@@ -431,11 +536,12 @@ function drawJobs() {
     else { st = esc(h.err || 'Gagal'); cls = 'err'; }
     const act = h.state === 'queued' || h.state === 'run'
       ? `<button class="btn sm" data-a="stop" data-id="${h.id}">Batal</button>`
+      : h.state === 'done' && !exp && h.parts && h.parts.length > 1 ? `<button class="btn sm pri" data-a="all" data-id="${h.id}">${dlIcon.replace(/18/g, '15')}Simpan ${h.parts.length}</button><button class="btn sm" data-a="save" data-id="${h.id}" title="Semua file dalam satu ZIP">ZIP</button>`
       : h.state === 'done' && !exp ? `<button class="btn sm pri" data-a="save" data-id="${h.id}">${dlIcon.replace(/18/g, '15')}Simpan</button>`
       : `<button class="btn sm" data-a="redo" data-id="${h.id}">Ulangi</button>`;
     return `<div class="card job${h.state === 'done' ? ' done' : ''}"><div class="th" style="background-image:url('${esc(h.thumb || '')}')"></div>
       <div class="mid"><div class="nm" title="${esc(h.title)}">${esc(h.title)}</div>
-      <div class="st ${cls}"><span class="tag">${h.kind === 'mp3' ? 'MP3' : 'MP4'} ${esc(h.q)}</span>${st}</div>
+      <div class="st ${cls}">${siteTag(h.site)}<span class="tag">${h.kind === 'mp3' ? 'MP3 ' + esc(h.q) : h.kind === 'media' ? esc(h.q) : 'MP4 ' + esc(h.q)}</span>${st}</div>
       <div class="bar"><i style="width:${h.state === 'run' ? j.pct || 0 : 0}%"></i></div></div>
       <div class="act">${act}<button class="ib" data-a="del" data-id="${h.id}" title="Hapus dari riwayat" aria-label="Hapus"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>`;
   }).join('');
@@ -445,11 +551,12 @@ $('jobs').onclick = async e => {
   const h = hist.find(x => x.id === b.dataset.id); if (!h) return;
   const a = b.dataset.a;
   if (a === 'save') save(h);
+  else if (a === 'all') saveAll(h);
   else if (a === 'stop') { try { await api('/api/job/' + h.id, { method: 'DELETE' }); } catch { } h.state = 'error'; h.err = 'Dibatalkan'; saveHist(); drawJobs(); }
   else if (a === 'del') { if (h.state === 'run' || h.state === 'queued') api('/api/job/' + h.id, { method: 'DELETE' }).catch(() => { }); hist = hist.filter(x => x !== h); saveHist(); drawJobs(); }
   else if (a === 'redo') {
-    url.value = 'https://youtu.be/' + h.vid; $('clr').hidden = false;
-    if (h.kind === 'mp3') { prefs.abr = parseInt(h.q) || prefs.abr; setKind('mp3'); } else { prefs.q = parseInt(h.q) || prefs.q; setKind('mp4'); }
+    url.value = h.src || 'https://youtu.be/' + h.vid; $('clr').hidden = false;
+    if (h.kind === 'mp3') { prefs.abr = parseInt(h.q) || prefs.abr; setKind('mp3'); } else { if (!h.src) prefs.q = parseInt(h.q) || prefs.q; setKind('mp4'); }
     sel = null; lastId = null; await load(url.value, false); scrollTo({ top: 0, behavior: 'smooth' });
   }
 };
@@ -466,7 +573,7 @@ if (hist.length) $('intro').hidden = true;
 connect().then(() => poll());
 // ?url=… / ?v=… (share target or bookmarklet) opens a link straight away.
 const pre = qs.get('url') || qs.get('text') || (qs.get('v') ? 'https://youtu.be/' + qs.get('v') : '');
-if (ytId(pre)) { url.value = pre; load(pre, true); } else url.focus({ preventScroll: true });
+if (link(pre)) { url.value = pre; load(pre, true); } else url.focus({ preventScroll: true });
 window.DL = { R, prefs, hist: () => hist, live, load, start, cur: () => cur };
 })();
 </script>
