@@ -1,19 +1,8 @@
 # Downloader
 
-Tempel link YouTube, Instagram, TikTok, X, atau Threads, lalu otomatis dikonversi dan disimpan sebagai **MP4** (YouTube: pilih resolusi 144p–4K), **MP3** (128–320 kbps), **foto**, atau **teks**.
+Runs entirely in the visitor's browser (no server of ours does the conversion, no MacBook):
+YouTube through Invidious streams, joined/encoded with mediabunny (`js/engine.js`); TikTok through tikwm; X through fxtwitter;
+Instagram + Threads through the Supabase Edge Function `amatu-dl` (`supabase/functions/amatu-dl`).
 
-Situs: https://amatu-id.github.io/downloader/ (bagian dari Portal AMATU, perlu masuk portal).
-
-- Tempel link (Ctrl/⌘+V di mana saja, tombol **Tempel**, atau tarik link ke halaman) → detail video langsung muncul.
-- MP4: setiap resolusi yang tersedia di YouTube beserta perkiraan ukuran. Resolusi yang hanya ada dalam VP9/AV1 (umumnya 2K/4K) bisa diubah otomatis ke H.264 supaya bisa diputar di semua perangkat.
-- MP3: 320 / 256 / 192 / 128 kbps, dengan sampul dan judul tertanam.
-- **Instagram**: postingan (foto/video/carousel), reels, story (`/stories/<user>/`), highlight. Pilih item yang mau diambil; beberapa file bisa disimpan satu-satu atau sebagai ZIP. Dibaca memakai akun Instagram yang login di Chrome MacBook (cookie disalin oleh `dl-relay/cookies.py`).
-- **TikTok**: video (tanpa watermark), foto slideshow (+ audio), story, link pendek `vm.`/`vt.tiktok.com`. Video juga bisa langsung jadi MP3.
-- **X (Twitter)**: video (kualitas tertinggi), GIF, foto asli, dan teks post; link `x.com`, `twitter.com`, `t.co`. Hanya post publik (tanpa login).
-- **Threads**: video (sampai 1080p), foto, carousel, dan teks post; link `threads.com`, `threads.net`. Hanya post publik (tanpa login).
-- Post tanpa media disimpan sebagai `.txt`; teks post bisa disalin langsung.
-- **Otomatis unduh saat ditempel**: link yang ditempel langsung diproses dengan format & kualitas pilihan terakhir lalu tersimpan.
-- Riwayat unduhan tersinkron ke akun portal; file hasil tersedia di server selama 1 jam.
-- Link langsung: `https://amatu-id.github.io/downloader/?url=<link YouTube>`.
-
-Konversi berjalan di server kecil di MacBook (yt-dlp + gallery-dl + ffmpeg, folder `dl-relay/`) yang diakses lewat Cloudflare tunnel; alamatnya diambil dari Supabase (`amt_relay_get`). MacBook harus menyala dan online.
+Deploy the function: `supabase functions deploy amatu-dl --project-ref ieyqxmzztoxgpvwexbkj --no-verify-jwt --use-api`.
+`js/vendor` = mediabunny 1.65.1 + @mediabunny/mp3-encoder (MPL-2.0), unmodified except the mp3 encoder's import path.

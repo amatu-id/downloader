@@ -5,7 +5,7 @@
 <script src="/amatu.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Downloader · YouTube, Instagram, TikTok, X, Threads</title>
-<meta name="description" content="Tempel link YouTube, Instagram (postingan, reels, story), TikTok, X, atau Threads — otomatis dikonversi dan disimpan sebagai MP4, MP3, foto, atau teks.">
+<meta name="description" content="Tempel link YouTube, Instagram (postingan, reels), TikTok, X, atau Threads — otomatis dikonversi dan disimpan sebagai MP4, MP3, foto, atau teks.">
 <meta name="theme-color" content="#f4f4f2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -151,7 +151,6 @@ svg{display:block}
     <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg></div>
     <div class="brand"><b>Downloader</b><span>YouTube · Instagram · TikTok · X · Threads → MP4, MP3, foto</span></div>
     <div class="sp"></div>
-    <span class="chip wait" id="srv" title="Server konversi di MacBook"><i></i><span class="lb">Menghubungkan…</span></span>
     <button class="ib" id="theme" title="Tema terang/gelap" aria-label="Tema"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   </header>
 
@@ -196,7 +195,7 @@ svg{display:block}
 
   <div class="sect"><h3>Unduhan</h3><div class="sp"></div><button class="btn sm" id="clean" hidden>Bersihkan riwayat</button></div>
   <div class="jobs" id="jobs"><div class="card empty">Belum ada unduhan.</div></div>
-  <p class="hint" style="margin-top:14px">Konversi berjalan di server MacBook pemilik portal, jadi MacBook harus menyala dan online. File hasil disimpan di server paling lama 1 jam. Instagram dibaca memakai akun Instagram yang login di Chrome MacBook, jadi story/akun privat hanya bisa kalau akun itu bisa melihatnya. X dan Threads dibaca tanpa login, jadi hanya post publik yang bisa diambil. Gunakan hanya untuk konten milik sendiri atau yang boleh diunduh.</p>
+  <p class="hint" style="margin-top:14px">Semua proses berjalan langsung di browser perangkat ini. Biarkan halaman tetap terbuka sampai selesai. Instagram: hanya postingan dan reels dari akun publik; story perlu login sehingga tidak bisa diunduh.</p>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -239,7 +238,7 @@ function ytId(s) {
   const m = /(?:youtube(?:-nocookie)?\.com\/(?:.*[?&]v=|shorts\/|live\/|embed\/|v\/)|youtu\.be\/)([\w-]{11})/i.exec(s);
   return m ? m[1] : null;
 }
-// Any supported link in pasted text → { site, key, url }. Links other than YouTube are checked fully by the relay.
+// Any supported link in pasted text → { site, key, url }. 
 const SOC = /https?:\/\/(?:(?:www|m|mobile)\.)?(?:instagram\.com|instagr\.am|(?:vm\.|vt\.)?tiktok\.com|x\.com|twitter\.com|fxtwitter\.com|vxtwitter\.com|fixupx\.com|fixvx\.com|t\.co|threads\.com|threads\.net)\/[^\s"'<>]+/i;
 function link(s) {
   const y = ytId(s);
@@ -254,9 +253,9 @@ function link(s) {
 }
 const SITE = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok', x: 'X', threads: 'Threads' };
 const social = d => !!d && !!d.site && d.site !== 'youtube';
-const rel = p => !p ? '' : /^https?:/.test(p) ? p : (R.url || '') + p;
+const rel = p => p || '';
 const siteTag = s => s === 'instagram' ? '<span class="site ig">IG</span>' : s === 'tiktok' ? '<span class="site tt">TikTok</span>' : s === 'x' ? '<span class="site tt">X</span>' : s === 'threads' ? '<span class="site tt">Threads</span>' : '';
-// Small JPEG data URL of a relay thumbnail for the history (the relay's own thumb links expire).
+// Small JPEG data URL of a thumbnail for the history (the sites' own links expire).
 function tinyThumb(src) {
   return new Promise(res => {
     if (!src) return res('');
@@ -268,57 +267,135 @@ function tinyThumb(src) {
   });
 }
 
-// ---------- relay (the MacBook, behind a Cloudflare tunnel) ----------
-const R = { url: qs.get('relay') || null, ok: false, wait: null };
+// ---------- sources: straight from the browser; amatu-dl (Supabase) only for what a browser may not read itself ----------
+const DLFN = 'https://ieyqxmzztoxgpvwexbkj.supabase.co/functions/v1/amatu-dl';
 const token = () => (A && A.sess() && A.sess().t) || qs.get('tok') || '';
-function srv(state, text) { const c = $('srv'); c.className = 'chip ' + state; c.querySelector('.lb').textContent = text; c.title = text; }
-
-async function hello(url) {
-  const r = await fetch(url + '/api/hello', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error('hello ' + r.status);
-  return r.json();
-}
-async function findRelay() {
-  const cands = [];
-  if (R.url) cands.push(R.url);
-  const cached = A && A.jget('pt.dl.relay', null);
-  if (cached && cached.url && !cands.includes(cached.url)) cands.push(cached.url);
-  for (const u of cands) { try { await hello(u); return u; } catch { } }
-  if (A && token()) {
-    const d = await A.rpc('amt_relay_get', { p_token: token(), p_name: 'downloader' }).catch(() => null);
-    if (d && d.url && !cands.includes(d.url)) { try { await hello(d.url); A.jset('pt.dl.relay', { url: d.url, t: d.t }); return d.url; } catch { } }
-  }
-  return null;
-}
-async function connect() {
-  if (R.wait) return R.wait;
-  srv('wait', 'Menghubungkan…');
-  R.wait = (async () => {
-    const u = await findRelay();
-    R.ok = !!u; if (u) R.url = u;
-    if (R.ok) srv('on', 'Server aktif'); else srv('off', 'Server offline');
-    R.wait = null;
-    return R.ok;
-  })();
-  return R.wait;
-}
-setInterval(() => { if (!R.ok && document.visibilityState === 'visible') connect(); }, 20000);
-
 class ApiErr extends Error { constructor(m, s) { super(m); this.status = s; } }
-async function api(path, opt = {}) {
-  if (!R.ok && !(await connect())) throw new ApiErr('Server konversi di MacBook sedang offline. Pastikan MacBook menyala dan terhubung internet, lalu coba lagi.', 0);
-  let r;
-  try {
-    r = await fetch(R.url + path, { ...opt, cache: 'no-store', headers: { 'X-Amatu': token(), ...(opt.body ? { 'Content-Type': 'application/json' } : {}) } });
-  } catch (e) {
-    R.ok = false; srv('off', 'Server offline');
-    if (await connect()) return api(path, opt);   // tunnel address changed: retry once on the new one
-    throw new ApiErr('Tidak terhubung ke server konversi. Coba lagi sebentar.', 0);
-  }
+let engineP = null;
+const engine = () => engineP || (engineP = import('./js/engine.js?v=1'));
+
+async function edge(params) {
+  const r = await fetch(DLFN + '?' + new URLSearchParams(params), { headers: { 'x-amatu': token() }, signal: AbortSignal.timeout(70000) }).catch(() => { throw new ApiErr('Tidak terhubung. Periksa internet lalu coba lagi.', 0); });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new ApiErr(j.error || ('Kesalahan ' + r.status), r.status);
   return j;
 }
+const viaEdge = u => DLFN + '?' + new URLSearchParams({ a: 'get', u, s: token() });
+
+// YouTube: an Invidious server hands out the streams with CORS and Range, the browser does the rest.
+const INV0 = ['https://yt.chocolatemoo53.com'];
+async function invHosts() {
+  const c = LS.get('pt.dl.inv', null);
+  if (c && Date.now() - c.t < 864e5 && c.hosts.length) return c.hosts;
+  let hosts = INV0;
+  try {
+    const l = await (await fetch('https://api.invidious.io/instances.json?sort_by=api,type', { signal: AbortSignal.timeout(6000) })).json();
+    hosts = [...new Set([...INV0, ...l.filter(x => x[1].api && x[1].type === 'https').map(x => x[1].uri)])];
+  } catch { }
+  LS.set('pt.dl.inv', { t: Date.now(), hosts });
+  return hosts;
+}
+const SHORT = p => p >= 4320 ? '8K' : p >= 2160 ? '4K' : p >= 1440 ? '2K' : p >= 1080 ? 'Full HD' : p >= 720 ? 'HD' : p >= 480 ? 'SD' : 'Kecil';
+const BR = p => p >= 2160 ? 40e6 : p >= 1440 ? 16e6 : p >= 1080 ? 8e6 : 5e6;
+const CLS = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320];
+const codecOf = t => /avc1/.test(t) ? 'H.264' : /vp0?9/.test(t) ? 'VP9' : /av01/.test(t) ? 'AV1' : '';
+async function ytInfo(id) {
+  let last = null;
+  for (const h of await invHosts()) {
+    try {
+      const r = await fetch(`${h}/api/v1/videos/${id}?local=true&fields=title,author,viewCount,published,lengthSeconds,liveNow,isUpcoming,error,adaptiveFormats,formatStreams`, { signal: AbortSignal.timeout(25000) });
+      const j = await r.json();
+      if (j.error || !j.adaptiveFormats) { last = j.error || 'kosong'; continue; }
+      return ytSum(id, j);
+    } catch (e) { last = e; }
+  }
+  throw new ApiErr(typeof last === 'string' && /private|removed|unavailable|age/i.test(last) ? 'Video ini tidak tersedia (privat, dihapus, atau dibatasi usia).' : 'Sumber video sedang sibuk. Coba lagi sebentar lagi.', 0);
+}
+function ytSum(id, j) {
+  const dur = +j.lengthSeconds || 0, fs = j.adaptiveFormats;
+  const auds = fs.filter(f => /^audio/.test(f.type));
+  const aud = auds.find(f => String(f.itag) === '140') || auds.find(f => /mp4a/.test(f.type)) || auds.find(f => String(f.itag) === '251') || auds[0];
+  const aSize = aud ? +aud.clen || 0 : 0;
+  const byP = new Map();
+  for (const f of fs) {
+    if (!/^video/.test(f.type) || !codecOf(f.type) || /hdr/i.test(f.qualityLabel || '')) continue;
+    const [w, h] = String(f.size || '').split('x').map(Number);
+    const side = w && h ? Math.min(w, h) : parseInt(f.qualityLabel) || 0;
+    const p = CLS.reduce((a, b) => Math.abs(b - side) < Math.abs(a - side) ? b : a, 144);
+    const codec = codecOf(f.type), rank = (+f.fps || 0) * 10 + (codec === 'H.264' ? 3 : codec === 'VP9' ? 2 : 1);
+    const cur = byP.get(p);
+    if (!cur || rank > cur.rank) byP.set(p, { p, rank, f, codec, w: w || 0, h: h || 0 });
+  }
+  const video = [...byP.values()].sort((a, b) => b.p - a.p).map(({ p, f, codec, w, h }) => ({
+    p, tag: SHORT(p), fps: Math.round(+f.fps || 0), codec, hdr: '', w, h, v: f.url, size: Math.round((+f.clen || 0) + aSize),
+    h264: codec === 'H.264' || p > 2160 ? 0 : Math.round(BR(p) / 8 * dur + aSize),
+  }));
+  return {
+    id, title: j.title, channel: j.author, duration: dur, views: j.viewCount, date: j.published ? new Date(j.published * 1000).toISOString().slice(0, 10).replace(/-/g, '') : '',
+    thumb: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, cover: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`, live: j.liveNow || j.isUpcoming ? 1 : 0, video,
+    audio: { src: aud ? Math.round((+aud.bitrate || 0) / 1000) : 0, codec: aud ? (/mp4a/.test(aud.type) ? 'mp4a' : 'opus') : '', url: aud && aud.url, size: aSize },
+  };
+}
+
+// A public post in one shape, whichever site it came from.
+function socSum(site, src, p, label) {
+  const items = p.items.map((x, i) => ({ ...x, n: i + 1, dur: Math.round(x.dur || 0), thumb: x.thumb || '' }));
+  if (!items.length) { if (!p.text) throw new ApiErr('Tidak ada foto, video, atau teks di post ini.', 422); items.push({ n: 1, type: 'text', w: 0, h: 0, dur: 0, thumb: '', ext: 'txt' }); }
+  const vids = items.filter(x => x.type === 'video');
+  const kind = vids.length ? (items.length > 1 ? 'Postingan' : 'Video') : items[0].type === 'text' ? 'Teks' : 'Foto';
+  const lbl = label || `${kind} ${SITE[site]}`;
+  return {
+    site, id: src, src, title: (String(p.text || '').split('\n').find(l => l.trim()) || `${lbl} @${p.user}`).slice(0, 200), text: String(p.text || '').slice(0, 30000),
+    channel: p.user ? '@' + p.user : '', fullname: p.fullname || '', label: lbl, code: String(p.code || site), date: String(p.date || '').replace(/-/g, ''),
+    thumb: (items.find(x => x.thumb) || {}).thumb || p.avatar || '', duration: vids.length === 1 && items.length === 1 ? vids[0].dur : 0, items,
+  };
+}
+async function tiktok(url) {
+  const ask = async () => { const r = await fetch('https://www.tikwm.com/api/?hd=1&url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(25000) }); return r.json(); };
+  let j = await ask().catch(() => null);
+  if (j && j.code !== 0 && /limit/i.test(j.msg || '')) { await new Promise(r => setTimeout(r, 1300)); j = await ask().catch(() => null); }
+  if (!j) throw new ApiErr('TikTok sedang tidak bisa dihubungi. Coba lagi sebentar lagi.', 0);
+  if (j.code !== 0 || !j.data) throw new ApiErr('Video TikTok tidak ditemukan. Mungkin sudah dihapus atau akunnya privat.', 422);
+  const d = j.data, abs = u => !u ? '' : /^https?:/.test(u) ? u : 'https://www.tikwm.com' + u, cover = abs(d.origin_cover || d.cover);
+  const items = d.images && d.images.length
+    ? [...d.images.map(u => ({ type: 'image', url: abs(u), thumb: abs(u), w: 0, h: 0, ext: 'jpg' })), ...(d.music ? [{ type: 'audio', url: abs(d.music), thumb: cover, w: 0, h: 0, dur: d.music_info && d.music_info.duration, ext: 'mp3' }] : [])]
+    : [{ type: 'video', url: abs(d.hdplay || d.play), alt: abs(d.play), thumb: cover, w: 0, h: 0, dur: d.duration, ext: 'mp4' }];
+  return socSum('tiktok', url, { user: d.author && d.author.unique_id, fullname: d.author && d.author.nickname, text: d.title, date: d.create_time ? new Date(d.create_time * 1000).toISOString().slice(0, 10) : '', code: d.id, items }, d.images && d.images.length ? 'Foto TikTok' : 'Video TikTok');
+}
+const X_PHOTO = (url, w, h) => {
+  const m = /^(https:\/\/pbs\.twimg\.com\/media\/[\w-]+)\.(\w+)/.exec(url);
+  return m ? { type: 'image', url: `${m[1]}?format=${m[2]}&name=orig`, thumb: `${m[1]}?format=jpg&name=small`, w, h, ext: m[2].toLowerCase() } : { type: 'image', url, thumb: url, w, h, ext: 'jpg' };
+};
+async function xPost(url) {
+  if (/\/\/t\.co\//i.test(url)) url = (await edge({ a: 'resolve', u: url })).url;
+  const id = /\/status(?:es)?\/(\d+)/.exec(url);
+  if (!id) throw new ApiErr('Link X harus menuju satu post, contoh: https://x.com/nama/status/123', 422);
+  const r = await fetch('https://api.fxtwitter.com/status/' + id[1], { signal: AbortSignal.timeout(20000) }).catch(() => null);
+  const j = r && await r.json().catch(() => null);
+  if (!j || j.code !== 200 || !j.tweet) throw new ApiErr(r && r.status === 404 ? 'Post X tidak ditemukan. Mungkin sudah dihapus atau akunnya privat.' : j && j.code === 401 ? 'Post ini tidak bisa dibuka tanpa login X.' : 'X sedang tidak bisa dihubungi. Coba lagi sebentar lagi.', r && r.status === 404 ? 422 : 0);
+  const conv = list => (list || []).map(m => {
+    if (m.type === 'photo') return X_PHOTO(m.url, m.width || 0, m.height || 0);
+    const vars = (m.formats || m.variants || []).filter(v => /mp4/.test(v.container || v.content_type || '') && v.url).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+    const u = (vars[0] && vars[0].url) || (/\.mp4/.test(m.url || '') ? m.url : '');
+    return u ? { type: 'video', url: u, thumb: m.thumbnail_url, w: m.width || 0, h: m.height || 0, dur: m.duration || 0, ext: 'mp4' } : null;
+  }).filter(Boolean);
+  const t = j.tweet, own = conv(t.media && t.media.all);
+  return socSum('x', 'https://x.com/i/status/' + id[1], { user: t.author && t.author.screen_name, fullname: t.author && t.author.name, text: t.text, date: t.created_timestamp ? new Date(t.created_timestamp * 1000).toISOString().slice(0, 10) : '', code: t.id, avatar: t.author && t.author.avatar_url, items: own.length ? own : conv(t.quote && t.quote.media && t.quote.media.all) });
+}
+async function igPost(url) {
+  if (/instagr\.am|\/share\//i.test(url)) url = (await edge({ a: 'resolve', u: url })).url;
+  if (/\/(stories|highlights|s)\//i.test(url)) throw new ApiErr('Story Instagram perlu login, jadi tidak bisa diunduh. Postingan dan reels publik bisa.', 422);
+  const m = /\/(?:p|reel|reels|tv)\/([\w-]+)/i.exec(url);
+  if (!m) throw new ApiErr('Tempel link satu postingan atau reel Instagram, bukan link profil.', 422);
+  return socSum('instagram', url, await edge({ a: 'ig', code: m[1] }));
+}
+async function threadsPost(url) {
+  if (/\/t\/[\w-]+/.test(url) && !/\/post\//.test(url)) url = (await edge({ a: 'resolve', u: url })).url;
+  const m = /https?:\/\/[^/]+\/(@[\w.]+)\/post\/([\w-]+)/.exec(url);
+  const u = m ? `https://www.threads.com/${m[1]}/post/${m[2]}` : url;
+  return socSum('threads', u, await edge({ a: 'threads', u }));
+}
+const infoOf = l => l.site === 'youtube' ? ytInfo(l.key) : l.site === 'tiktok' ? tiktok(l.url) : l.site === 'x' ? xPost(l.url) : l.site === 'instagram' ? igPost(l.url) : threadsPost(l.url);
 
 // ---------- paste → info ----------
 let cur = null, infoSeq = 0, lastId = null;
@@ -334,9 +411,8 @@ async function load(raw, fromPaste) {
   const seq = ++infoSeq;
   $('vid').hidden = true; $('skel').hidden = false; $('intro').hidden = true;
   try {
-    const d = await api('/api/info?url=' + encodeURIComponent(l.url));
+    const d = await infoOf(l);
     if (seq !== infoSeq) return;
-    if (l.site !== 'youtube' && !social(d)) throw new Error('Server konversi di MacBook belum mendukung situs ini. Perbarui relay-nya.');
     cur = d; pickSet = null; render();
     if (fromPaste && prefs.auto) start();
   } catch (e) {
@@ -399,7 +475,7 @@ function render() {
     }).join('');
     const row = d.video.find(r => r.p === sel.p) || {};
     opts.innerHTML = row.h264 ? `<label class="tog"><input type="checkbox" id="compat"${prefs.compat ? ' checked' : ''}><span class="sw"></span>Ubah ke H.264 agar bisa diputar di semua perangkat</label>
-      <div class="hint">${row.p}p dari YouTube memakai codec ${esc(row.codec)}${prefs.compat ? '. Diubah ke H.264 di MacBook (butuh waktu tambahan).' : ', yang mungkin tidak bisa diputar di iPhone, QuickTime, atau Windows lama.'}</div>` : '';
+      <div class="hint">${row.p}p dari YouTube memakai codec ${esc(row.codec)}${prefs.compat ? '. Diubah ke H.264 di perangkat ini (butuh waktu tambahan).' : ', yang mungkin tidak bisa diputar di iPhone, QuickTime, atau Windows lama.'}</div>` : '';
     const c = $('compat'); if (c) c.onchange = e => { prefs.compat = e.target.checked; savePrefs(); render(); };
     const sz = prefs.compat && row.h264 ? row.h264 : row.size;
     $('go').innerHTML = dlIcon + `Unduh MP4 ${row.p}p${sz ? ' · ±' + fmtSize(sz) : ''}`;
@@ -448,8 +524,7 @@ function renderSocial() {
     else if (imgs) o += '<div class="hint">Foto dilewati; hanya video/audio yang diubah ke MP3.</div>';
   } else if (!textOnly) {
     o += `<label class="tog"><input type="checkbox" id="compat"${prefs.compat ? ' checked' : ''}><span class="sw"></span>Ubah ke H.264 / JPG agar bisa dibuka di semua perangkat</label>`;
-    if (vids && d.site === 'instagram') o += `<div class="hint">${prefs.compat ? 'Video Instagram kualitas penuh memakai VP9; diubah ke H.264 di MacBook (beberapa detik).' : 'Video disimpan apa adanya (VP9) — mungkin tidak bisa diputar di iPhone/QuickTime.'}</div>`;
-  }
+      }
   opts.innerHTML = o;
   const ct = $('copyText');
   if (ct) ct.onclick = async () => { try { await navigator.clipboard.writeText(d.text); toast('Teks disalin'); } catch { toast('Gagal menyalin teks'); } };
@@ -464,85 +539,182 @@ function renderSocial() {
 }
 const dlIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>';
 
-// ---------- jobs ----------
+// ---------- jobs: run on this page, at most two at a time ----------
 $('go').onclick = () => start();
+const safeName = s => String(s || 'video').replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'video';
+const live = new Map();    // job id → { phase, pct, speed, eta }
+const RUN = new Map();     // job id → AbortController
+const FILES = new Map();   // job id → { files: [{ name, blob }], zip? } for this visit
+const waiting = [];
+let active = 0, drawT = 0;
+const redraw = () => { if (!drawT) drawT = setTimeout(() => { drawT = 0; drawJobs(); }, 250); };
+const newId = () => [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join('');
+
 async function start() {
   if (!cur || cur.live) return;
-  const d = cur, soc = social(d);
-  let b;
+  const d = cur, soc = social(d), mp3 = prefs.kind === 'mp3';
+  let job, q, name = safeName(d.title);
   if (soc) {
-    const mp3 = prefs.kind === 'mp3', items = d.items.filter(x => pickSet && pickSet.has(x.n) && (!mp3 || x.type === 'video' || x.type === 'audio')).map(x => x.n);
+    const items = d.items.filter(x => pickSet && pickSet.has(x.n) && (!mp3 || x.type === 'video' || x.type === 'audio'));
     if (!items.length) return showErr(mp3 ? 'Pilih minimal satu video untuk MP3.' : 'Pilih minimal satu foto/video.');
-    b = { url: d.src, kind: mp3 ? 'mp3' : 'media', items, compat: prefs.compat, abr: prefs.abr };
-  } else b = { url: 'https://www.youtube.com/watch?v=' + d.id, ...(prefs.kind === 'mp4' ? { kind: 'mp4', q: sel.p, compat: prefs.compat } : { kind: 'mp3', abr: sel.abr }) };
-  $('go').disabled = true;
-  try {
-    const [j, thumb] = await Promise.all([api('/api/job', { method: 'POST', body: JSON.stringify(b) }), soc ? tinyThumb(rel(d.thumb)) : d.thumb]);
-    hist.unshift({ id: j.id, site: d.site || 'youtube', vid: soc ? undefined : d.id, src: soc ? d.src : undefined, title: d.title, thumb, kind: j.kind, q: j.q, name: j.name, t: Date.now(), state: j.state, relay: R.url, auto: 1 });
-    saveHist(); live.set(j.id, j); drawJobs(); poll();
-    toast('Diproses: ' + (soc ? SITE[d.site] + ' ' + (j.kind === 'mp3' ? 'MP3' : j.q) : (j.kind === 'mp3' ? 'MP3 ' : 'MP4 ') + j.q));
-    url.value = ''; $('clr').hidden = true; lastId = null;
-    $('jobs').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } catch (e) { showErr(e.message); }
-  finally { $('go').disabled = false; }
-}
-
-const live = new Map();   // job id → latest status from the relay
-let pollT = 0;
-async function poll() {
-  clearTimeout(pollT);
-  const act = hist.filter(h => h.state === 'queued' || h.state === 'run');
-  if (!act.length) return;
-  await Promise.all(act.map(async h => {
-    try {
-      const j = await api('/api/job/' + h.id);
-      live.set(h.id, j);
-      if (j.state !== h.state) {
-        h.state = j.state; h.size = j.size; h.err = j.err; h.name = j.name; h.parts = j.parts;
-        if (j.state === 'done') { h.done = Date.now(); if (h.auto) { h.auto = 0; saveAll(h); } }
-        saveHist();
-      }
-    } catch (e) {
-      if (e.status === 404 || e.status === 401) { h.state = 'error'; h.err = e.message; saveHist(); }
-    }
-  }));
+    const v = items.filter(x => x.type === 'video').length, i = items.filter(x => x.type === 'image').length;
+    q = mp3 ? prefs.abr + ' kbps' : [v && v + ' video', i && i + ' foto', items.some(x => x.type === 'text') && 'teks'].filter(Boolean).join(' + ') || 'audio';
+    job = { kind: mp3 ? 'mp3' : 'media', items, abr: prefs.abr, compat: prefs.compat, name, d };
+  } else if (mp3) {
+    q = sel.abr + ' kbps';
+    job = { kind: 'mp3', abr: sel.abr, name, d };
+  } else {
+    const row = d.video.find(r => r.p === sel.p) || d.video[0];
+    if (!row) return showErr('Video ini tidak punya gambar.');
+    q = row.p + 'p';
+    job = { kind: 'mp4', row, compat: prefs.compat, name, d };
+  }
+  const id = newId();
+  const thumb = soc ? await tinyThumb(rel(d.thumb)) : d.thumb;
+  hist.unshift({ id, site: d.site || 'youtube', vid: soc ? undefined : d.id, src: soc ? d.src : undefined, title: d.title, thumb, kind: job.kind, q, name: name + (job.kind === 'mp3' ? '.mp3' : '.mp4'), t: Date.now(), state: 'queued', auto: 1 });
+  saveHist();
+  waiting.push({ id, job }); pump();
   drawJobs();
-  pollT = setTimeout(poll, document.visibilityState === 'visible' ? 1200 : 4000);
+  toast('Diproses: ' + (soc ? SITE[d.site] + ' ' + q : (mp3 ? 'MP3 ' : 'MP4 ') + q));
+  url.value = ''; $('clr').hidden = true; lastId = null;
+  $('jobs').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function pump() {
+  while (active < 2 && waiting.length) { const w = waiting.shift(); active++; runJob(w).finally(() => { active--; pump(); }); }
+}
+function stopJob(id) {
+  const k = waiting.findIndex(w => w.id === id); if (k >= 0) waiting.splice(k, 1);
+  const c = RUN.get(id); if (c) c.abort();
+}
+async function runJob({ id, job }) {
+  const h = hist.find(x => x.id === id);
+  if (!h || h.state !== 'queued') return;
+  const ctrl = new AbortController(), t0 = Date.now(), st = { phase: 'Mengunduh', pct: 0 };
+  RUN.set(id, ctrl); live.set(id, st);
+  h.state = 'run'; saveHist(); drawJobs();
+  // from = part of the bar this step owns
+  const step = (phase, from, to) => { st.phase = phase; const b = Date.now(); return p => { st.pct = (from + (to - from) * Math.min(1, p)) * 100; const left = p > .01 ? (Date.now() - b) / p * (1 - p) / 1000 : 0; st.eta = Math.round(left); redraw(); }; };
+  try {
+    const m = await engine();
+    const files = job.kind === 'media' ? await runMedia(m, job, ctrl.signal, step, st) : job.kind === 'mp3' ? await runMp3(m, job, ctrl.signal, step, st) : [await runVideo(m, job, ctrl.signal, step)];
+    const size = files.reduce((n, f) => n + f.blob.size, 0);
+    FILES.set(id, { files });
+    Object.assign(h, { state: 'done', size, done: Date.now(), name: files.length === 1 ? files[0].name : job.name + '.zip', count: files.length > 1 ? files.length : undefined });
+    saveHist(); drawJobs();
+    if (h.auto) { h.auto = 0; saveHist(); saveAll(h); }
+  } catch (e) {
+    if (ctrl.signal.aborted) return;
+    console.warn('job', e);
+    h.state = 'error'; h.err = friendly(e); saveHist(); drawJobs();
+  } finally { RUN.delete(id); live.delete(id); redraw(); }
+}
+const friendly = e => e instanceof ApiErr || /browser|Pilih kualitas|Format ini/.test(e.message || '') ? e.message : /quota|storage|space/i.test(e.message || e.name || '') ? 'Penyimpanan perangkat penuh. Kosongkan ruang atau pilih kualitas lebih rendah.' : 'Unduhan terputus. Tekan Ulangi untuk mencoba lagi.';
+
+async function runVideo(m, job, signal, step) {
+  const { row, d } = job, wantH = job.compat && row.codec !== 'H.264' && row.h264 && await m.canH264(row.w || 1920, row.h || 1080);
+  let blob = await m.join({ v: row.v, a: d.audio.url, size: row.size, tags: { title: d.title, artist: d.channel }, signal, onProgress: step('Mengunduh', 0, wantH ? .4 : 1) });
+  if (wantH) blob = await m.toH264({ file: blob, est: row.h264, signal, onProgress: step('Mengubah ke H.264', .4, 1) });
+  return { name: `${job.name} (${row.p}p).mp4`, blob };
+}
+async function tagsOf(d) {
+  const tags = { title: d.title, artist: d.channel ? d.channel.replace(/^@/, '') : undefined };
+  for (const u of [d.cover, d.thumb].filter(Boolean)) {
+    try {
+      const r = await fetch(u, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) continue;
+      tags.images = [{ data: new Uint8Array(await r.arrayBuffer()), mimeType: r.headers.get('content-type') || 'image/jpeg', kind: 'coverFront' }];
+      break;
+    } catch { }
+  }
+  return tags;
+}
+async function runMp3(m, job, signal, step, st) {
+  const d = job.d, tags = await tagsOf(d), srcs = job.items ? job.items.map(x => x.url) : [d.audio.url], out = [];
+  if (!srcs[0]) throw new ApiErr('Video ini tidak punya audio.', 422);
+  for (let i = 0; i < srcs.length; i++) {
+    const on = step('Membuat MP3', i / srcs.length, (i + 1) / srcs.length), dur = job.items ? job.items[i].dur : d.duration;
+    const blob = await m.toMp3({ url: await reachable(srcs[i], signal), abr: job.abr, tags, est: job.abr * 125 * (dur || 600), signal, onProgress: on });
+    out.push({ name: `${job.name}${srcs.length > 1 ? ' ' + (i + 1) : ''}.mp3`, blob });
+  }
+  return out;
+}
+// The address itself when this browser may read it, else through amatu-dl.
+async function reachable(u, signal) {
+  try { const r = await fetch(u, { headers: { Range: 'bytes=0-0' }, signal }); r.body && r.body.cancel(); if (r.ok) return u; } catch (e) { if (signal.aborted) throw e; }
+  return viaEdge(u);
+}
+async function runMedia(m, job, signal, step) {
+  const out = [], its = job.items, code = job.d.code, base = `${job.d.site}_${code}`;
+  const nameOf = (x, i, ext) => `${base}${its.length > 1 ? '_' + (i + 1) : ''}.${ext}`;
+  for (let i = 0; i < its.length; i++) {
+    const x = its[i], on = step('Mengunduh', i / its.length, (i + 1) / its.length);
+    if (x.type === 'text') { out.push({ name: nameOf(x, i, 'txt'), blob: new Blob([job.d.text], { type: 'text/plain;charset=utf-8' }) }); continue; }
+    let blob = null;
+    if (x.dash && x.dash.a) {
+      try {
+        blob = await m.join({ v: await reachable(x.dash.v, signal), a: await reachable(x.dash.a, signal), signal, onProgress: p => on(job.compat ? p * .4 : p) });
+        if (job.compat && await m.canH264(x.dash.w, x.dash.h)) blob = await m.toH264({ file: blob, est: 0, signal, onProgress: p => { step('Mengubah ke H.264', 0, 0); on(.4 + p * .6); } });
+      } catch (e) { if (signal.aborted) throw e; blob = null; }
+    }
+    if (!blob) {
+      const urls = [x.url, x.alt].filter(Boolean);
+      for (const u of urls) {
+        if (blob) break;
+        try { blob = await m.grab(u, { signal, onProgress: on }); }
+        catch (e) { if (signal.aborted) throw e; try { blob = await m.grab(viaEdge(u), { signal, onProgress: on }); } catch (e2) { if (signal.aborted) throw e2; } }
+      }
+      if (!blob) throw new ApiErr('Berkas tidak bisa diambil. Coba tempel ulang link-nya.', 0);
+    }
+    let ext = x.ext || (x.type === 'video' ? 'mp4' : 'jpg');
+    if (x.type === 'image' && job.compat && !/jpe?g/.test(blob.type + ext)) { const j = await toJpeg(blob); if (j) { blob = j; ext = 'jpg'; } }
+    out.push({ name: nameOf(x, i, ext), blob });
+  }
+  return out;
+}
+async function toJpeg(blob) {
+  try {
+    const b = await createImageBitmap(blob), c = document.createElement('canvas');
+    c.width = b.width; c.height = b.height; c.getContext('2d').drawImage(b, 0, 0);
+    return await new Promise(r => c.toBlob(r, 'image/jpeg', .95));
+  } catch { return null; }
 }
 
-// The relay answers the file with Content-Disposition: attachment, so the browser saves it without leaving the page.
-// part = index of one file of a multi-file job (carousel / stories); none = the single file or the ZIP.
-function save(h, part) {
-  const base = h.relay || R.url;
-  if (!base) return toast('Server offline');
-  const p = part != null && h.parts ? h.parts[part] : null, name = p ? p.name : h.name || 'file';
-  const a = document.createElement('a');
-  a.href = base + '/api/file/' + h.id + '/' + encodeURIComponent(name) + (p ? '?part=' + part : '');
-  a.rel = 'noopener'; a.download = name;
+// Save = the browser's normal download of a file already on this device.
+function saveBlob(name, blob) {
+  const a = document.createElement('a'), u = URL.createObjectURL(blob);
+  a.href = u; a.rel = 'noopener'; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 10 * 60e3);
   toast('Menyimpan ' + name);
+}
+// One button "ZIP" for many files: built on demand.
+async function save(h) {
+  const f = FILES.get(h.id);
+  if (!f) return toast('File sudah tidak ada. Tekan Ulangi.');
+  if (f.files.length === 1) return saveBlob(f.files[0].name, f.files[0].blob);
+  try { f.zip = f.zip || await (await engine()).zip(f.files); saveBlob(h.name, f.zip); } catch { toast('ZIP gagal dibuat. Simpan satu per satu.'); }
 }
 // Several photos/videos: each file on its own (browsers may ask once to allow multiple downloads); more than 10 → the ZIP.
 function saveAll(h) {
-  if (!h.parts || h.parts.length < 2 || h.parts.length > 10) return save(h);
-  h.parts.forEach((_, k) => setTimeout(() => save(h, k), k * 700));
+  const f = FILES.get(h.id);
+  if (!f || f.files.length < 2 || f.files.length > 10) return save(h);
+  f.files.forEach((x, k) => setTimeout(() => saveBlob(x.name, x.blob), k * 700));
 }
-const EXPIRE = 55 * 60e3;
 function drawJobs() {
   const box = $('jobs');
   $('clean').hidden = !hist.some(h => h.state !== 'queued' && h.state !== 'run');
   if (!hist.length) { box.innerHTML = '<div class="card empty">Belum ada unduhan.</div>'; return; }
   box.innerHTML = hist.map(h => {
     const j = live.get(h.id) || {};
-    const exp = h.state === 'done' && Date.now() - (h.done || h.t) > EXPIRE;
+    const exp = h.state === 'done' && !FILES.has(h.id);
     let st, cls = '';
-    if (h.state === 'queued') st = 'Antre' + (j.pos ? ' ke-' + j.pos : '') + '…';
+    if (h.state === 'queued') st = 'Antre…';
     else if (h.state === 'run') st = `${esc(j.phase || 'Memproses')} · ${Math.round(j.pct || 0)}%` + (j.speed ? ' · ' + fmtSize(j.speed) + '/dtk' : '') + (j.eta ? ' · sisa ' + fmtEta(j.eta) : '');
-    else if (h.state === 'done') { st = exp ? 'Kedaluwarsa di server — proses ulang' : 'Selesai · ' + fmtSize(h.size); cls = exp ? '' : 'ok'; }
+    else if (h.state === 'done') { st = exp ? 'Selesai' : 'Selesai · ' + fmtSize(h.size); cls = exp ? '' : 'ok'; }
     else { st = esc(h.err || 'Gagal'); cls = 'err'; }
     const act = h.state === 'queued' || h.state === 'run'
       ? `<button class="btn sm" data-a="stop" data-id="${h.id}">Batal</button>`
-      : h.state === 'done' && !exp && h.parts && h.parts.length > 1 ? `<button class="btn sm pri" data-a="all" data-id="${h.id}">${dlIcon.replace(/18/g, '15')}Simpan ${h.parts.length}</button><button class="btn sm" data-a="save" data-id="${h.id}" title="Semua file dalam satu ZIP">ZIP</button>`
+      : h.state === 'done' && !exp && h.count > 1 ? `<button class="btn sm pri" data-a="all" data-id="${h.id}">${dlIcon.replace(/18/g, '15')}Simpan ${h.count}</button><button class="btn sm" data-a="save" data-id="${h.id}" title="Semua file dalam satu ZIP">ZIP</button>`
       : h.state === 'done' && !exp ? `<button class="btn sm pri" data-a="save" data-id="${h.id}">${dlIcon.replace(/18/g, '15')}Simpan</button>`
       : `<button class="btn sm" data-a="redo" data-id="${h.id}">Ulangi</button>`;
     return `<div class="card job${h.state === 'done' ? ' done' : ''}"><div class="th" style="background-image:url('${esc(h.thumb || '')}')"></div>
@@ -558,8 +730,8 @@ $('jobs').onclick = async e => {
   const a = b.dataset.a;
   if (a === 'save') save(h);
   else if (a === 'all') saveAll(h);
-  else if (a === 'stop') { try { await api('/api/job/' + h.id, { method: 'DELETE' }); } catch { } h.state = 'error'; h.err = 'Dibatalkan'; saveHist(); drawJobs(); }
-  else if (a === 'del') { if (h.state === 'run' || h.state === 'queued') api('/api/job/' + h.id, { method: 'DELETE' }).catch(() => { }); hist = hist.filter(x => x !== h); saveHist(); drawJobs(); }
+  else if (a === 'stop') { stopJob(h.id); h.state = 'error'; h.err = 'Dibatalkan'; saveHist(); drawJobs(); }
+  else if (a === 'del') { stopJob(h.id); FILES.delete(h.id); hist = hist.filter(x => x !== h); saveHist(); drawJobs(); }
   else if (a === 'redo') {
     url.value = h.src || 'https://youtu.be/' + h.vid; $('clr').hidden = false;
     if (h.kind === 'mp3') { prefs.abr = parseInt(h.q) || prefs.abr; setKind('mp3'); } else { if (!h.src) prefs.q = parseInt(h.q) || prefs.q; setKind('mp4'); }
@@ -569,18 +741,21 @@ $('jobs').onclick = async e => {
 $('clean').onclick = () => { hist = hist.filter(h => h.state === 'queued' || h.state === 'run'); saveHist(); drawJobs(); };
 
 // Another device of the same account started or finished something: pick it up.
-if (A && A.on) A.on(() => { hist = LS.get('downloader.hist', hist); drawJobs(); poll(); });
-addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') poll(); });
+if (A && A.on) A.on(() => { const mine = new Map(hist.filter(h => RUN.has(h.id) || FILES.has(h.id)).map(h => [h.id, h])); hist = LS.get('downloader.hist', hist).map(h => mine.get(h.id) || h); drawJobs(); });
 
 // ---------- boot ----------
 setKind(prefs.kind);
+// Work runs on this page, so what was still running on the last visit has stopped.
+hist.forEach(h => { if (h.state === 'run' || h.state === 'queued') { h.state = 'error'; h.err = 'Terhenti karena halaman ditutup'; } });
+hist = hist.map(({ relay, parts, ...h }) => h);
+saveHist();
+engine().then(m => m.wipeDisk()).catch(() => { });
 drawJobs();
 if (hist.length) $('intro').hidden = true;
-connect().then(() => poll());
 // ?url=… / ?v=… (share target or bookmarklet) opens a link straight away.
 const pre = qs.get('url') || qs.get('text') || (qs.get('v') ? 'https://youtu.be/' + qs.get('v') : '');
 if (link(pre)) { url.value = pre; load(pre, true); } else url.focus({ preventScroll: true });
-window.DL = { R, prefs, hist: () => hist, live, load, start, cur: () => cur };
+window.DL = { prefs, hist: () => hist, live, load, start, cur: () => cur, FILES };
 })();
 </script>
 </body>
